@@ -1,0 +1,11 @@
+#!/bin/sh
+item="$1"
+case "$item" in
+    */*)
+	file="$item"
+	;;
+    *)
+	file=`which "$item"`
+	;;
+esac
+dpkg-query -S "$file"

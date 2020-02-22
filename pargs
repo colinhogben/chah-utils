@@ -1,0 +1,56 @@
+#!/usr/bin/env python
+
+def pargs(pdir):
+    with open(pdir+'/cmdline') as f:
+        cmdline = f.read()
+    args = cmdline.split('\0')
+    assert(args[-1] == '')      # Terminating NUL
+    for i, arg in enumerate(args[:-1]):
+        print 'argv[%d]: %r' % (i, arg)
+
+def penv(pdir):
+    with open(pdir+'/environ') as f:
+        environ = f.read()
+    env = environ.split('\0')
+    assert(env[-1] == '')      # Terminating NUL
+    for ev in env[:-1]:
+        print ev
+
+def pstack(pdir):
+    # with open(pdir+'/stack') as f:
+    #     print f.read()
+    taskdir = os.path.join(pdir, 'task')
+    for task in os.listdir(taskdir):
+        print '%s:' % task
+        stack = os.path.join(taskdir, task, 'stack')
+        try:
+            with open(stack) as f:
+                print f.read()
+        except Exception, e:
+            print str(e)
+
+if __name__=='__main__':
+    import sys
+    import os
+    import optparse
+    op = optparse.OptionParser(usage='%prog pid')
+    opts, args = op.parse_args()
+    if len(args) != 1:
+        op.error('wrong number of arguments')
+    try:
+        pid = int(args[0])
+    except ValueError:
+        op.error('Invalid pid')
+    myname = op.get_prog_name()
+    pdir = '/proc/%d' % pid
+    if not os.path.isdir(pdir):
+        op.error('Unknown pid %d' % pid)
+    if myname == 'pargs':
+        pargs(pdir)
+    elif myname == 'penv':
+        penv(pdir)
+    elif myname == 'pstack':
+        pstack(pdir)
+    else:
+        op.error('Invoked as unknown program')
+

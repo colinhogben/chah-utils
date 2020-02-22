@@ -1,0 +1,114 @@
+#!/usr/bin/env perl
+#=======================================================================
+#	$Id: cmddiff,v 1.2 2017/03/01 14:16:58 chah Exp $
+#	Diffs on output from two commands.
+#	E.g.
+#	  cmddiff -c "cd {} && ls -lr" olddir newdir
+#	  cmddiff -u "listlist -u juser/CDO | sort" SOMETHING
+#	  cmddiff env 'alter -e env'
+#	  cmddiff -u "cd insdir && find *" "prodls myproduct"
+#=======================================================================
+use strict;
+use Getopt::Long;
+use File::Temp qw(tempfile);
+
+(my $myname = $0) =~ s!.*/!!;
+
+sub usage {
+    print STDERR "usage: $myname [ diffoptions ] command file1 file2\n";
+    print STDERR "       $myname [ diffoptions ] command1 command2\n";
+    exit 200;
+}
+
+my @OPT1 = qw(b i t w c e f h n u);
+my @OPT2 = qw(C U D);
+my %opt;
+#my @go = (map { "$_" => \$opt{$_} } @OPT1);
+my @go = ((map {("$_" => \$opt{$_})} @OPT1),
+	  (map {("$_=s" => \$opt{$_})} @OPT2));
+#print join('>',@go),"\n";
+Getopt::Long::Configure('bundling','no_ignore_case');
+GetOptions(\%opt, @OPT1, map {"$_=s"} @OPT2)
+    or usage;
+#print join(" ",%opt),"\n";
+my($cmd,@arg);
+if (@ARGV == 2) {
+    @arg = @ARGV;
+} elsif (@ARGV == 3) {
+    ($cmd,@arg) = @ARGV;
+} else {
+    usage;
+}
+
+my @tmps;
+
+foreach my $i (0,1) {
+    my $excmd;
+    if (! defined $cmd) {
+	$excmd = $arg[$i];
+    } elsif ($cmd =~ /\{\}/) {
+	($excmd = $cmd) =~ s/\{\}/$arg[$i]/g;
+    } else {
+	$excmd = $cmd . ' '. shq($arg[$i]);
+    }
+
+    my($tmp,$tmpname) = tempfile(SUFFIX => '.cmddiff');
+    push @tmps, $tmpname;
+    #print STDERR "system: $excmd > $tmpname\n";
+    my $pid = fork;
+    if (! defined $pid) {
+	die "$myname: Cannot fork child: $!\n";
+    } elsif ($pid == 0) {
+	# I am the child
+	open(STDOUT,'>&'.fileno($tmp))
+	    or die "$myname: Cannot open $tmpname for write: $!\n";
+	exec($excmd) or print STDERR "$myname: Could not exec '$excmd': $!\n";
+    } else {
+	waitpid($pid,0);
+    }
+	
+    #system "($excmd) > $tmp";
+}
+
+my @diffopts = ((map {"-$_"} grep {$opt{$_}} @OPT1),
+		(map {("-$_",$opt{$_})} grep {defined $opt{$_}} @OPT2));
+#print join(" ",@diffopts),"\n";
+
+open(SORT,'-|','diff',@diffopts,@tmps)
+    or die "$myname: cannot open pipe from sort: $!\n";
+while (<SORT>) {
+    if ($opt{'u'}) {
+	if (/^--- \Q$tmps[0]\E(.*)/o) {
+	    print "--- $arg[0]$1\n";
+	} elsif (/^\+\+\+ \Q$tmps[1]\E(.*)/o) {
+	    print "+++ $arg[1]$1\n";
+	} else {
+	    print;
+	}
+    } elsif ($opt{'c'}) {
+	if (/^\*\*\* \Q$tmps[0]\E(.*)/o) {
+	    print "*** $arg[0]$1\n";
+	} elsif (/^--- \Q$tmps[1]\E(.*)/o) {
+	    print "--- $arg[1]$1\n";
+	} else {
+	    print;
+	}
+    } else {
+	print;
+    }
+}
+close(SORT);
+my $status = $?;		# Exit code of diff
+
+unlink @tmps;
+
+if ($status != 0) {
+    exit(1);
+}
+
+#--- Shell-quote an argument
+sub shq {
+    my($word) = @_;
+    $word =~ s/[\$\"\`\\]/\\$&/g;
+    return '"'.$word.'"';
+}
