@@ -1,5 +1,15 @@
-UTILS = defs undefs:defs pargs penv:pargs lc exp cmddiff
-WORK_UTILS = #defs undefs
+UTILS = \
+	defs undefs:defs \
+	pargs penv:pargs \
+	lc \
+	exp \
+	cmddiff \
+	prod \
+	prodls \
+
+WORK_UTILS = \
+	defs undefs:defs \
+	exp \
 
 install:
 	./install-files $(UTILS)

@@ -5,7 +5,14 @@ case "$item" in
 	file="$item"
 	;;
     *)
-	file=`which "$item"`
+	file=`which "$item"` || exit $?
 	;;
 esac
-dpkg-query -S "$file"
+if [ -f "/usr/bin/dpkg-query" ]; then
+    dpkg-query -S "$file"
+elif [ -f "/bin/rpm" ]; then
+    rpm -q --whatprovides "$file"
+else
+    echo "$0: Unknown packaging" >&2
+    exit 1
+fi

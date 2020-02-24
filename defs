@@ -1,0 +1,63 @@
+#!/usr/bin/python
+from __future__ import print_function
+import os
+import subprocess
+
+def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument('binfile',
+                    help='Executable or object file')
+    args = ap.parse_args()
+    un = os.path.basename(ap.prog).startswith('un')
+    #
+    binfile = args.binfile
+    try:
+        if os.path.sep not in binfile:
+            binfile = ffip(binfile)
+        with open(binfile, 'rb') as f:
+            magic = f.read(32)
+        if magic[:4] == b'\x7FELF':
+            symdefs = elf_defs(un, binfile, magic)
+        else:
+            raise ValueError('%s: Unknown file type')
+        for sym, type, bind in sorted(symdefs):
+            if (True or type == 'FUNC') and bind == 'GLOBAL':
+                print(sym)
+    except Exception as e:
+        import sys
+        print('%s: %s' % (ap.prog, e))
+        sys.exit(1)
+
+def elf_defs(un, binfile, magic):
+    for line in iter_output(['readelf','-s',binfile]):
+        fields = line.split(None, 7)
+        if len(fields) < 8:
+            continue
+        if fields[0].endswith(':') and fields[0][:-1].isdigit():
+            #print(fields)
+            _, _, _, type, bind, _, ndx, syminfo = fields[:8]
+            sym, _, scope = syminfo.partition('@')
+            if un:
+                if ndx == 'UND':
+                    yield sym, type, bind
+            else:
+                if ndx != 'UND':
+                    yield sym, type, bind
+
+def iter_output(cmd):
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    for line in p.stdout:
+        yield line.rstrip('\n')
+    p.wait()
+
+def ffip(name):
+    """Find named file in PATH"""
+    for dir in os.environ.get('PATH','/bin:/usr/bin').split(os.pathsep):
+        fullname = os.path.join(dir, name)
+        if os.path.exists(fullname):
+            return fullname
+    raise ValueError('%s not found in PATH' % name)
+
+main()
+        
