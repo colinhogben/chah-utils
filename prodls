@@ -2,7 +2,7 @@
 pkg="$1"
 if [ -f "/usr/bin/dpkg-query" ]; then
     dpkg-query -L "$pkg"
-elif [ -f "/bin/rpm" ]; then
+elif [ -f "/bin/rpm" -o -f "/usr/bin/rpm" ]; then
     rpm -ql "$pkg"
 else
     echo "$0: Unknown packaging" >&2

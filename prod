@@ -10,7 +10,7 @@ case "$item" in
 esac
 if [ -f "/usr/bin/dpkg-query" ]; then
     dpkg-query -S "$file"
-elif [ -f "/bin/rpm" ]; then
+elif [ -f "/bin/rpm" -o -f "/usr/bin/rpm" ]; then
     rpm -q --whatprovides "$file"
 else
     echo "$0: Unknown packaging" >&2
