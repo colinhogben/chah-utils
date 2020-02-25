@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 from __future__ import print_function
 import os
 import subprocess
@@ -6,6 +6,8 @@ import subprocess
 def main():
     import argparse
     ap = argparse.ArgumentParser()
+    ap.add_argument('-d','--with-data', action='store_true',
+                    help='Show data symbols in addition to functions')
     ap.add_argument('binfile',
                     help='Executable or object file')
     args = ap.parse_args()
@@ -13,24 +15,36 @@ def main():
     #
     binfile = args.binfile
     try:
-        if os.path.sep not in binfile:
-            binfile = ffip(binfile)
+        if not os.path.isfile(binfile):
+            if os.path.sep not in binfile:
+                full = ffip(binfile)
+                if full is None:
+                    raise ValueError('%s not found in PATH' % binfile)
+                binfile = full
+            else:
+                raise ValueError('%s: No such file or directory' % binfile)
         with open(binfile, 'rb') as f:
             magic = f.read(32)
         if magic[:4] == b'\x7FELF':
-            symdefs = elf_defs(un, binfile, magic)
+            symdefs = elf_defs(un, binfile,
+                               with_data=args.with_data)
+        elif magic[2:4] == b'\x01\x07':
+            # big-endian executable
+            if magic[1:2] in (b'\x01', b'\x02'):
+                # mc68010 or mc68020
+                symdefs = m68k_defs(un, binfile,
+                                    with_data=args.with_data)
         else:
-            raise ValueError('%s: Unknown file type')
-        for sym, type, bind in sorted(symdefs):
-            if (True or type == 'FUNC') and bind == 'GLOBAL':
-                print(sym)
+            raise ValueError('%s: Unknown file type' % binfile)
+        for sym in sorted(set(symdefs)):
+            print(sym)
     except Exception as e:
         import sys
         print('%s: %s' % (ap.prog, e))
         sys.exit(1)
 
-def elf_defs(un, binfile, magic):
-    for line in iter_output(['readelf','-s',binfile]):
+def elf_defs(un, binfile, with_data=False):
+    for line in iter_output(['readelf','--symbols','--wide',binfile]):
         fields = line.split(None, 7)
         if len(fields) < 8:
             continue
@@ -40,10 +54,29 @@ def elf_defs(un, binfile, magic):
             sym, _, scope = syminfo.partition('@')
             if un:
                 if ndx == 'UND':
-                    yield sym, type, bind
+                    yield sym
             else:
                 if ndx != 'UND':
-                    yield sym, type, bind
+                    if with_data or type == 'FUNC':
+                        yield sym
+
+def m68k_defs(un, binfile, with_data=False):
+    return _nm_defs('nm68k', un, binfile, with_data=with_data)
+
+def _nm_defs(nm, un, binfile, with_data=False):
+    """Extract symbols using 'nm' or a variant thereof"""
+    if not ffip(nm):
+        raise RuntimeError('No %s found in PATH' % nm)
+    if un:
+        tmatch = set('U')
+    else:
+        tmatch = set('T')
+        if with_data:
+            tmatch.add('D')
+    for line in iter_output([nm,'-p',binfile]):
+        xaddr, t, sym = (b'x'+line).split(None, 2)
+        if t in tmatch:
+            yield sym
 
 def iter_output(cmd):
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -55,9 +88,9 @@ def ffip(name):
     """Find named file in PATH"""
     for dir in os.environ.get('PATH','/bin:/usr/bin').split(os.pathsep):
         fullname = os.path.join(dir, name)
-        if os.path.exists(fullname):
+        if os.path.isfile(fullname):
             return fullname
-    raise ValueError('%s not found in PATH' % name)
+    return None
 
 main()
         
