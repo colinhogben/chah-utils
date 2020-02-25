@@ -1,0 +1,74 @@
+#!/bin/sh
+#=======================================================================
+#	$Id: cpifdiff,v 1.4 2017/03/01 14:17:12 chah Exp $
+#	Copy ifile (or standard input if omitted) to ofile if they differ
+#=======================================================================
+progname=`basename $0`
+usage() {
+    echo "Usage: $progname [-l logmsg] [ifile] ofile" >&2
+    exit 2
+}
+
+tmp=`mktemp -t cpifdiff.XXXXX`
+
+trap 'trap 0; rm -f $tmp; exit 1' 1 2 15
+
+fail () {
+    echo $progname: "$@" >&2
+    rm -f $tmp
+    exit 1
+}
+
+opt_log=n
+while getopts "l:" opt; do
+    case $opt in
+    l)
+	opt_log=y
+	logmsg=$OPTARG
+	;;
+    *)	
+	usage
+    	;;
+    esac
+done
+shift `expr $OPTIND - 1`
+test $# -ge 1 -a $# -le 2  ||  usage
+
+#---	'-' as first argument means standard input
+test $# -eq 2 -a "$1" = "-"  &&  shift
+
+#---	if standard input, copy to temporary file
+if [ $# -eq 1 ]; then
+    cat > $tmp  ||  fail "Failed to copy standard input"
+    ifile=$tmp
+    ofile=$1
+else
+    ifile=$1
+    ofile=$2
+fi
+
+#---	Test input file access
+test -f "$ifile"  ||  fail "$ifile: No such file"
+test -r "$ifile"  ||  fail "$ifile: Permission denied"
+
+#---	If the output file does not exist, create it
+if [ ! -f "$ofile" ]; then
+    touch "$ofile"  ||  fail "$ofile: Permission denied"
+    cp $ifile $ofile  ||  fail "Failed writing $ofile"
+    if [ "$opt_log" = "y" ]; then
+	echo "$logmsg"
+    fi
+#---	Otherwise, compare with existing file
+else
+    test -r "$ofile" -a -w "$ofile"  ||  fail "$ofile: Permission denied"
+    if not cmp -s "$ifile" "$ofile"; then
+	cp "$ifile" "$ofile"  ||  fail "Failed writing $ofile"
+	if [ "$opt_log" = "y" ]; then
+	    echo "$logmsg"
+	fi
+    fi
+fi
+
+rm -f $tmp
+
+exit 0

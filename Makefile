@@ -4,6 +4,7 @@ UTILS = \
 	lc \
 	exp \
 	cmddiff \
+	cpifdiff \
 	prod \
 	prodls \
 
