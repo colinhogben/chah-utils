@@ -8,6 +8,7 @@ case "$item" in
 	file=`which "$item"` || exit $?
 	;;
 esac
+file=`realpath "$file"`
 if [ -f "/usr/bin/dpkg-query" ]; then
     dpkg-query -S "$file"
 elif [ -f "/bin/rpm" -o -f "/usr/bin/rpm" ]; then
