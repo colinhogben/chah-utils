@@ -1,0 +1,11 @@
+#!/bin/sh
+
+exec \
+docker run \
+       --mount "type=bind,source=$HOME,destination=$HOME" \
+       --mount "type=bind,source=/etc/passwd,destination=/etc/passwd" \
+       --rm \
+       --user=`id -u`:`id -g` \
+       --workdir=`pwd` \
+       --hostname=docker \
+       "$@"
