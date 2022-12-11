@@ -3,6 +3,12 @@ from __future__ import print_function
 import os
 import subprocess
 
+import sys
+if sys.version_info[0] == 2:
+    subp_ascii = {}
+else:
+    subp_ascii = dict(encoding='ascii')
+
 def main():
     import argparse
     ap = argparse.ArgumentParser()
@@ -39,6 +45,7 @@ def main():
         for sym in sorted(set(symdefs)):
             print(sym)
     except Exception as e:
+        raise
         import sys
         print('%s: %s' % (ap.prog, e))
         sys.exit(1)
@@ -74,12 +81,12 @@ def _nm_defs(nm, un, binfile, with_data=False):
         if with_data:
             tmatch.add('D')
     for line in iter_output([nm,'-p',binfile]):
-        xaddr, t, sym = (b'x'+line).split(None, 2)
+        xaddr, t, sym = ('x'+line).split(None, 2)
         if t in tmatch:
             yield sym
 
 def iter_output(cmd):
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, **subp_ascii)
     for line in p.stdout:
         yield line.rstrip('\n')
     p.wait()
