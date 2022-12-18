@@ -1,0 +1,50 @@
+#!/usr/bin/env perl
+#=======================================================================
+#       List directories containing source files
+#=======================================================================
+use Getopt::Long;
+use Cwd qw(getcwd);
+
+my($grep);
+my($var) = 'TOP';
+GetOptions('g|grep' => \$grep,
+	   'v|var=s' => \$var)
+    and @ARGV <= 1
+    or die "Usage: %0 [--grep] [--var=NAME] [dir]\n";
+my $top = (@ARGV ? shift : '.');
+$top = getcwd if $top eq '.';
+$top =~ s!/$!!;
+my $toplen = length($top);
+
+my(%patterns,%dirs);
+open(my $find, '-|', 'find',$top,
+     '(','-name','*.h',
+     '-o','-name','*.c',
+     '-o','-name','*.hpp',
+     '-o','-name','*.cpp',
+     ')','-print')
+    or die "Cannot open pipe from find: $!\n";
+while (<$find>) {
+    chomp(my $path = $_);
+    my($dir,$ext) = $path =~ m!(.*/).*?(\..*)!;
+    $dirs{$dir} = 1;
+    die "Bad path $dir\n" unless substr($dir,0,$toplen+1) eq "$top/";
+    my $reldir = substr($dir,$toplen+1);
+    my $pat = "$reldir*$ext";
+    $patterns{$pat} = 1;
+}
+close($find);
+
+if ($grep) {
+    print "#!/bin/sh\n";
+    print "$var=$top\n";
+    print "exec grep \"\$\@\" \\\n";
+    foreach my $pat (sort keys %patterns) {
+	print "    \$$var/$pat \\\n";
+    }
+    print "\n";
+} else {
+    foreach my $dir (sort keys %dirs) {
+	print "$dir\n";
+    }
+}
