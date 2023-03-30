@@ -2,6 +2,7 @@
 #=======================================================================
 #       List directories containing source files
 #=======================================================================
+use strict;
 use Getopt::Long;
 use Cwd qw(getcwd);
 
@@ -58,10 +59,16 @@ if ($grep) {
 sub exclude {
     my($path) = @_;
     foreach my $excl (@exclude) {
-	if (excl =~ m!^/!) {
-	    return 1 if $path =~ m!^\Q$excl\E/!;
+	my $skip;
+	if ($excl =~ m!^/!) {
+	    # Explicitly at top level
+	    $skip = 1 if $path =~ m!^\Q$excl\E/!;
 	} else {
-	    return 1 if $path =~ m!\Q$excl\E/!;
+	    $skip = 2 if $path =~ m!\Q$excl\E/!;
+	}
+	if ($skip) {
+	    # print STDERR "Excluding $path\n";
+	    return 1;
 	}
     }
     return;
