@@ -1,0 +1,12 @@
+#!/bin/sh
+# Fast-forward (hard reset) a branch to its upstream, without checkout
+usage() { echo "Usage: $0 branch [remote]" >&2; exit 2; }
+fail() { echo "$1" >&2; exit 1; }
+
+test $# -ge 1 -a $# -le 2 || usage
+branch=$1
+remote=${2-origin}
+git show-ref --verify --quiet "refs/heads/$branch" || fail "No such branch $branch"
+git remote show -n "$remote" >/dev/null || fail "No such remote $remote"
+
+exec git update-ref "refs/heads/$branch" "origin/$branch"

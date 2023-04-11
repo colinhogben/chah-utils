@@ -1,0 +1,43 @@
+#!/usr/bin/env perl
+#=======================================================================
+#	Shove one or more commits from the current branch onto another,
+#	then merge it back in.
+#
+#	Suppose you have a work branch and are working on a feature
+#	based from master.  You've tested the latest commit(s) on the
+#	work branch, but they really belong on the feature branch.
+#=======================================================================
+use strict;
+use Getopt::Long;
+
+GetOptions()
+    and @ARGV >= 1 and @ARGV <= 2
+    or die "Usage: $0 to-branch [from-rev]\n";
+my($to_branch,$from_rev) = @ARGV;
+$from_rev ||= 'HEAD';
+
+my $work_branch = git('rev-parse','--abbrev-ref','HEAD');
+my $from_hash = git('rev-parse',"$from_rev^");
+my $to_hash = git('rev-parse','HEAD');
+
+git('checkout', $to_branch);
+git('cherry-pick', "$from_hash..$to_hash");
+git('checkout', $work_branch);
+git('reset','--hard', $from_hash);
+git('merge', $to_branch);
+
+sub git {
+    my(@args) = @_;
+    my @cmd = ('git', @args);
+    print STDERR join(' ',@cmd),"\n";
+    open(my $git,'-|', @cmd)
+	or die "Cannot open pipe from git: $!\n";
+    my @lines = <$git>;
+    close($git);
+    if (wantarray) {
+	return map {chomp} @lines;
+    } else {
+	chomp(my $out = join('', @lines));
+	return $out;
+    }
+}
