@@ -1,29 +1,32 @@
-UTILS = \
+# Extract letter only, e.g. "gen-pub-51" -> "genpub"
+letters = $(shell echo "$(1)" | sed -e s/[^A-Z]//ig)
+
+# Get OS (or kernel) name and generic hostname
+OS = $(call letters,$(shell (uname -o 2>/dev/null || uname -s)))
+GENHOST = $(call letters,$(shell unmame -n))
+
+UTILS_ALL = \
 	defs undefs:defs \
-	pargs penv:pargs \
-	lc \
 	exp \
+	git-cane \
+	git-ff \
+	git-shove \
+	git-smu \
+	srcdirs \
+
+UTILS_SunOS = \
+
+UTILS_GNULinux = \
 	cmddiff \
 	cpifdiff \
+	lc \
+	pargs penv:pargs \
 	prod \
 	prodls \
-	srcdirs \
-	git-cane \
-	git-ff \
-	git-shove \
-	git-smu \
-
-WORK_UTILS = \
-	defs undefs:defs \
-	exp \
-	srcdirs \
-	git-cane \
-	git-ff \
-	git-shove \
-	git-smu \
 
 install:
-	./install-files $(UTILS)
+	./install-files $(UTILS_ALL) $(UTILS_$(OS)) $(UTILS_$(GENHOST))
 
-install-work:
-	./install-files $(WORK_UTILS)
+install-%:
+	./install-files $(UTILS_ALL) $(UTILS_$*)
+
