@@ -1,0 +1,16 @@
+#!/bin/sh
+#	Usage: eshed <file>
+# (Emacs SHell EDitor)
+# Support for editing a file within an emacs shell buffer
+
+if [ $# -ne 1 ]; then
+	echo "Usage: `basename $0` file" >&2
+	exit 1
+elif [ ! -f $1 ]; then
+	echo "$1: no such file" >&2
+	exit 2
+fi
+
+echo "Please edit the file: $1"
+echo -n "then save it and type return > "
+read ack

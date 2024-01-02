@@ -13,12 +13,16 @@ UTILS_ALL = \
 	git-shove \
 	git-smu \
 	srcdirs \
+	withvenv \
 
 UTILS_SunOS = \
 
 UTILS_GNULinux = \
 	cmddiff \
 	cpifdiff \
+	dockclean \
+	dockrun \
+	eshed \
 	lc \
 	pargs penv:pargs \
 	prod \

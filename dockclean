@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# Clean up exited containers:
+
+docker ps -a -q -f "status=exited" |
+xargs docker rm -v
+
+# Clean up unwanted images
+
+docker images -f "dangling=true" -q |
+xargs docker rmi
