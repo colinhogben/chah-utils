@@ -9,26 +9,30 @@ use Cwd qw(getcwd);
 (my $myname = $0) =~ s!.*/!!;
 my @args = @ARGV;
 my($mode);
+my(@typelists);
 my($var) = 'TOP';
 my @exclude;
 GetOptions('g|grep' => sub {$mode = 'grep'},
+	   't|types=s' => \@typelists,
 	   'e|etags' => sub {$mode = 'etags'},
 	   'v|var=s' => \$var,
 	   'x|exclude=s' => \@exclude)
     and @ARGV <= 1
-    or die "Usage: $0 [--grep|--etags] [--var=NAME] [--exclude=path]... [dir]\n";
+    or die "Usage: $0 [--grep|--etags] [--types=ext1,ext2,...] [--var=NAME] [--exclude=path]... [dir]\n";
 my $top = (@ARGV ? shift : '.');
+@typelists = ('h,c,hpp,cpp') unless @typelists;
 $top = getcwd if $top eq '.';
 $top =~ s!/$!!;
 my $toplen = length($top);
 
+my @match;
+foreach my $type (map {split /,/, $_} @typelists) {
+    push @match, '-o' if @match;
+    push @match, '-name', "*.$type";
+}
+my @cmd = ('find',$top, '(', @match, ')', '-print');
 my(%patterns,%dirs);
-open(my $find, '-|', 'find',$top,
-     '(','-name','*.h',
-     '-o','-name','*.c',
-     '-o','-name','*.hpp',
-     '-o','-name','*.cpp',
-     ')','-print')
+open(my $find, '-|', @cmd)
     or die "Cannot open pipe from find: $!\n";
 while (<$find>) {
     chomp(my $path = $_);
