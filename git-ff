@@ -6,7 +6,15 @@ fail() { echo "$1" >&2; exit 1; }
 test $# -ge 1 -a $# -le 2 || usage
 branch=$1
 remote=${2-origin}
-git show-ref --verify --quiet "refs/heads/$branch" || fail "No such branch $branch"
-git remote show -n "$remote" >/dev/null || fail "No such remote $remote"
+git show-ref --verify --quiet "refs/heads/$branch" ||
+    fail "No such branch $branch"
+git remote show -n "$remote" >/dev/null ||
+    fail "No such remote $remote"
+git show-ref --verify --quiet "refs/remotes/$remote/$branch" ||
+    fail "Remote $remote has no $branch branch"
+if [ "`git rev-parse --abbrev-ref HEAD`" = "$branch" ]; then
+    test -z "`git status --porcelain=v1`" ||
+	fail "You are on the $branch branch and the tree is not clean"
+fi
 
-exec git update-ref "refs/heads/$branch" "origin/$branch"
+exec git update-ref "refs/heads/$branch" "$remote/$branch"
