@@ -3,7 +3,7 @@ letters = $(shell echo "$(1)" | sed -e s/[^A-Z]//ig)
 
 # Get OS (or kernel) name and generic hostname
 OS = $(call letters,$(shell (uname -o 2>/dev/null || uname -s)))
-GENHOST = $(call letters,$(shell unmame -n))
+GENHOST = $(call letters,$(shell uname -n))
 
 UTILS_ALL = \
 	defs undefs:defs \
