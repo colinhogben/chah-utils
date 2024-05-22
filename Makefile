@@ -28,6 +28,9 @@ UTILS_GNULinux = \
 	prod \
 	prodls \
 
+UTILS_freia = \
+	mountjac mountsol:mountjac \
+
 install:
 	./install-files $(UTILS_ALL) $(UTILS_$(OS)) $(UTILS_$(GENHOST))
 

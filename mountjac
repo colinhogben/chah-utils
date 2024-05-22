@@ -1,0 +1,59 @@
+#!/bin/sh
+myname=`basename "$0"`
+usage() {
+    echo "Usage: $myname" >&2
+    exit 2
+}
+
+user=`id -un`
+
+main() {
+    test $# -eq 0 || usage
+    case "$myname" in
+	mountjac)
+	    do_mount "/jachome/$user" "$HOME/jachome"
+	    ;;
+	mountsol)
+	    do_mount "/solhome/$user" "$HOME/solhome"
+	    ;;
+	mountchain1)
+	    do_mount /home/chain1 /home/chain1
+	    do_mount /common/chain1 /common/chain1
+	    ;;
+	*)
+	    echo "$myname: Unknown invocation name" >$2
+	    exit 2
+	    ;;
+    esac
+}
+
+#host=heimdall001.jet.uk
+host=lingen-vsf-pub-2.jet.uk
+
+do_mount() {
+    src=$1; dest=$2
+    mounted=`mount -t fuse.sshfs | fgrep " on $dest " | cut -d' ' -f1`
+    if [ -n "$mounted" ]; then
+	# Yes, but... underlying connection may have failed
+	err=`ls -d "$dest" 2>&1 >/dev/null`
+	case "$err" in
+	    *"Transport endpoint is not connected"*)
+		fusermount -u "$dest"
+		;;
+	    "")
+		echo "$myname: $mounted already mounted on $dest" >&2
+		exit 1
+		;;
+	    *)
+		echo "$err" >&2
+		exit 1
+	esac
+    fi
+    # "ServerAliveInterval=15" may avoid "Transport endpoint disconnected"
+    sshfs "$host:$src" "$dest" -o reconnect -o ServerAliveInterval=15 || exit $?
+}
+
+# To unmount:
+#  fusermount -u "$dest"
+
+main "$@"
