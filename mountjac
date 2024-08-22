@@ -16,6 +16,9 @@ main() {
 	mountsol)
 	    do_mount "/solhome/$user" "$HOME/solhome"
 	    ;;
+	mountmeta)
+	    do_mount "/home/codas/meta" "$HOME/meta"
+	    ;;
 	mountchain1)
 	    do_mount /home/chain1 /home/chain1
 	    do_mount /common/chain1 /common/chain1
