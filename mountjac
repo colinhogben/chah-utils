@@ -6,6 +6,8 @@ usage() {
 }
 
 user=`id -un`
+jethost=lingen-vsf-pub-2.jet.uk
+masthost=mastpcs3.mastdev.l
 
 main() {
     test $# -eq 0 || usage
@@ -19,6 +21,12 @@ main() {
 	mountmeta)
 	    do_mount "/home/codas/meta" "$HOME/meta"
 	    ;;
+	mountmast)
+	    do_mount "/devhome/chah" "$HOME/mast" "$masthost"
+	    ;;
+	mountpcs)
+	    do_mount "/net/mastpcs3/work/chah/pcs" "$HOME/pcs" "$masthost"
+	    ;;
 	mountchain1)
 	    do_mount /home/chain1 /home/chain1
 	    do_mount /common/chain1 /common/chain1
@@ -31,10 +39,9 @@ main() {
 }
 
 #host=heimdall001.jet.uk
-host=lingen-vsf-pub-2.jet.uk
 
 do_mount() {
-    src=$1; dest=$2
+    src=$1; dest=$2; host=${3-$jethost}
     mounted=`mount -t fuse.sshfs | fgrep " on $dest " | cut -d' ' -f1`
     if [ -n "$mounted" ]; then
 	# Yes, but... underlying connection may have failed

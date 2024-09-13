@@ -29,7 +29,11 @@ UTILS_GNULinux = \
 	prodls \
 
 UTILS_freia = \
-	mountjac mountsol:mountjac mountmeta:mountjac \
+	mountjac \
+	mountsol:mountjac \
+	mountmeta:mountjac \
+	mountmast:mountjac \
+	mountpcs:mountjac \
 
 install:
 	./install-files $(UTILS_ALL) $(UTILS_$(OS)) $(UTILS_$(GENHOST))
