@@ -43,6 +43,7 @@
 #include <string.h>
 #include <memory.h>
 #ifdef __sunos5__
+# define HAVE_NORDFLOAT 1
 # define HAVE_POINT 1
 # define HAVE_BCN 1
 #endif
@@ -51,7 +52,9 @@
 #include <errno.h>
 #include <time.h>
 
-#include <csl3.h>			/* cf32to48_ etc. */
+#if HAVE_NORDFLOAT
+# include <csl3.h>			/* cf32to48_ etc. */
+#endif
 #if HAVE_POINT
 # include <cddefs.h>
 # include <csl9.h>
@@ -111,7 +114,9 @@ enum Type {
 #if HAVE_BCN
   TYPE_BCN,
 #endif
+#if HAVE_NORDFLOAT
   TYPE_NORDFLOAT,
+#endif
   TYPE_DATE
 };
 
@@ -159,7 +164,9 @@ typedef union {
 #if HAVE_POINT
   pknam_t pknam;
 #endif
+#if HAVE_NORDFLOAT
   short nf[3];
+#endif
   uint32_t u32;
   uint64_t u64;
   char bytes[8];
@@ -674,6 +681,7 @@ static int inconv_get(void *closure, char **data, int size)
     }
   } break;
 #endif
+#if HAVE_NORDFLOAT
   case TYPE_NORDFLOAT: {
     union {
       float fval;
@@ -707,6 +715,7 @@ static int inconv_get(void *closure, char **data, int size)
     *data = this->u.bytes;
     num = sizeof(this->u.nf);
   } break;
+#endif
   case TYPE_DATE: {
     if (text2date(str, &this->u.time, /*utc=*/conv->unsignedp)) {
       if (conv->byteswap) {
@@ -884,6 +893,7 @@ static int outconv_get(void *closure, char **data, int size)
     *data = this->buffer;
   } break;
 #endif
+#if HAVE_NORDFLOAT
   case TYPE_NORDFLOAT: {
     union {
       double dval;
@@ -913,6 +923,7 @@ static int outconv_get(void *closure, char **data, int size)
     sprintf(this->buffer, "%g", ieee.dval);
     *data = this->buffer;
   } break;
+#endif
   case TYPE_DATE: {
     struct tm tm;
     char buf[40];
@@ -1010,8 +1021,15 @@ int main(int argc, char **argv)
 #endif
       case 'R': inconv->type = TYPE_RAW; break;
       case 'r': outconv->type = TYPE_RAW; break;
+#if HAVE_NORDFLOAT
       case 'J': inconv->type = TYPE_NORDFLOAT; break;
       case 'j': outconv->type = TYPE_NORDFLOAT; break;
+#else
+      case 'J': case 'j':
+	fprintf(stderr, "-P/-p not supported on this platform\n");
+	error++;
+	break;
+#endif
       case 'Y': inconv->type = TYPE_DATE; break;
       case 'y': outconv->type = TYPE_DATE; break;
 
