@@ -6,6 +6,7 @@ OS = $(call letters,$(shell (uname -o 2>/dev/null || uname -s)))
 GENHOST = $(call letters,$(shell uname -n))
 
 UTILS_ALL = \
+	cconv \
 	defs undefs:defs \
 	exp \
 	git-cane \
@@ -35,9 +36,11 @@ UTILS_freia = \
 	mountmast:mountjac \
 	mountpcs:mountjac \
 
-install:
+install:	cconv
 	./install-files $(UTILS_ALL) $(UTILS_$(OS)) $(UTILS_$(GENHOST))
 
-install-%:
+install-%:	cconv
 	./install-files $(UTILS_ALL) $(UTILS_$*)
 
+cconv:	cconv.c
+	$(CC) -g -Wall -o $@ $<
