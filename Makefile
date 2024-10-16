@@ -25,6 +25,7 @@ UTILS_GNULinux = \
 	dockrun \
 	eshed \
 	lc \
+	mvall cpall:mvall \
 	pargs penv:pargs \
 	prod \
 	prodls \

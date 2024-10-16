@@ -1,0 +1,59 @@
+#!/usr/bin/env python
+#=======================================================================
+"""
+Rename or copy multiple files according to a pair pf patterns
+"""
+#=======================================================================
+from __future__ import print_function
+import glob
+import sys
+import os
+import re
+import shlex
+import subprocess
+
+def main():
+    myname = os.path.basename(sys.argv[0])
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument('-v','--verbose', action='store_true',
+                    help='Show commands being executed')
+    ap.add_argument('-n','--no-action', action='store_true',
+                    help='Show command bu to not execute it')
+    ap.add_argument('frompattern',
+                    help='Pattern matching files (using %% as placeholders)')
+    ap.add_argument('topattern',
+                    help='Pattern for new name (using %% as placeholders)')
+    args = ap.parse_args()
+    cmd = 'mv' if ap.prog.startswith('mv') else 'cp'
+
+    from_parts = args.frompattern.split('%')
+    to_parts = args.topattern.split('%')
+    if len(from_parts) != len(to_parts):
+        ap.error('Different numbers of %% placeholders' % myname)
+    glob_pat = '*'.join([glob.escape(part) for part in from_parts])
+    #print(glob_pat)
+    rx_pat = '(.*?)'.join([re.escape(part) for part in from_parts]) + '$'
+    rx = re.compile(rx_pat)
+    #print(rx_pat)
+
+    for from_name in glob.glob(glob_pat):
+        m = rx.match(from_name)
+        if not m:
+            raise Exception('Filename %s does not match regexp' % from_name)
+        from_vals = m.groups()
+        to_name = ''
+        for i, part in enumerate(to_parts):
+            if i > 0:
+                to_name += m.group(i)
+            to_name += part
+
+        command = [cmd, from_name, to_name]
+        if args.verbose or args.no_action:
+            sh_command = ' '.join([shlex.quote(arg)
+                                   for arg in command])
+            print(sh_command)
+        if not args.no_action:
+            subprocess.call(command)
+
+main()
