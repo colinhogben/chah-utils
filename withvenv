@@ -1,8 +1,13 @@
-#!/bin/sh
-test $# -gt 1 || { echo "Usage: $0 venvname cmd..." >&2; exit 2; }
+#!/bin/bash
+test $# -ge 1 || { echo "Usage: $0 venvname [cmd...]" >&2; exit 2; }
 name=$1; shift
 
 venvdir="$HOME/venv/$name"
 test -d "$venvdir" || { echo "No such venv $name" >&2; return 1; }
-. "$venvdir/bin/activate"
-"$@"
+if [ $# -eq 0 ]; then
+    # Serverfault 368064
+    bash --init-file <(echo ". ~/.bashrc; . $venvdir/bin/activate")
+else
+    . "$venvdir/bin/activate"
+    "$@"
+fi
