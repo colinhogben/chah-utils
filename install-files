@@ -17,7 +17,8 @@ def main():
     for utilspec in args.util:
         # Allow "alias:realprog"
         alias, _, util = utilspec.rpartition(':')
-        link = os.path.relpath(os.path.join('.', util), destdir)
+        link = os.path.relpath(os.path.realpath(os.path.join('.', util)),
+                               os.path.realpath(destdir))
         dest = os.path.join(destdir, alias or util)
         if os.path.islink(dest):
             if os.readlink(dest) == link:
