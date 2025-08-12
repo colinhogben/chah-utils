@@ -29,6 +29,7 @@ UTILS_GNULinux = \
 	pargs penv:pargs \
 	prod \
 	prodls \
+	xplot \
 
 UTILS_freia = \
 	mountjac \
