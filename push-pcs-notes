@@ -8,7 +8,9 @@ use Getopt::Long;
 use POSIX qw(strftime);
 
 my $TOOLSDIR = "$ENV{HOME}/pcsnotes";
-my $NOTES = 'PcsNotes';
+my @NOTES = qw(PcsNotes
+	       RtCpu HostCpu Realtime
+	       Memory Symbols);
 
 my($no_action);
 
@@ -24,19 +26,21 @@ sub main {
     chomp(my $branch = `git rev-parse --abbrev-ref HEAD`);
     dbg("branch=$branch");
 
-    my($notes_mod,$index_dirty);
+    my(@notes_mod,@index_dirty);
     open(my $git, '-|', 'git', 'status', '--porcelain')
 	or die "Cannot open pipe from git status: $!\n";
     while (<$git>) {
 	dbg($_);
 	if (my($index,$work,$file) = /^(.)(.) (.*)/) {
-	    if ($file eq $NOTES) {
-		if ("$index$work" =~ /M/) {
-		    $notes_mod = 1;
-		}
-	    } else {
-		if ($index =~ /[A-Z]/) {
-		    $index_dirty = 1;
+	    foreach my $note (@NOTES) {
+		if ($file eq $note) {
+		    if ("$index$work" =~ /M/) {
+			push @notes_mod, $note;
+		    }
+		} else {
+		    if ($index =~ /[A-Z]/) {
+			push @index_dirty, $note;
+		    }
 		}
 	    }
 	}
@@ -44,22 +48,27 @@ sub main {
     close($git)
 	or die "Error closing pipe from git status: $!\n";
 
-    if ($notes_mod) {
-	if ($index_dirty) {
-	    die "$NOTES has updates, but git index is not clean\n";
+    my $mods = join(',', @notes_mod);
+    if (@notes_mod) {
+	if (@index_dirty) {
+	    die "Updates to $mods, but git index is not clean\n";
 	} elsif ($branch ne 'master') {
-	    die "$NOTES has updates, but not on master branch: $branch\n";
+	    die "Updates tp $mods, but not on master branch: $branch\n";
 	}
     }
-    if ($notes_mod && ! $index_dirty) {
-	check_command(['git', 'add', $NOTES]);
+    if (@notes_mod && ! @index_dirty) {
+	check_command(['git', 'add', @notes_mod]);
 
-	my $mtime = (stat "$TOOLSDIR/$NOTES")[9];
+	my $mtime;
+	foreach my $note (@notes_mod) {
+	    my $note_mtime = (stat "$TOOLSDIR/$note")[9];
+	    $mtime = $note_mtime if $note_mtime > $mtime;
+	}
 	my $filedate = strftime "%Y%m%dT%H%M%S", localtime $mtime;
 	my $isodate = strftime "%Y-%m-%d", localtime;
 	check_command(['git', 'commit',
 		       '--date', $mtime,
-		       "-m$NOTES: Update to $isodate"]);
+		       "-m$mods: Update to $isodate"]);
 
 	check_command(['git', 'push', '--quiet']);
     }
