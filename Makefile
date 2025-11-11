@@ -38,6 +38,7 @@ UTILS_freia = \
 	mountmeta:mountjac \
 	mountmast:mountjac \
 	mountpcs:mountjac \
+	push-pcs-notes \
 
 install:	cconv
 	./install-files $(UTILS_ALL) $(UTILS_$(OS)) $(UTILS_$(GENHOST))

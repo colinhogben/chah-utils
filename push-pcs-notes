@@ -1,0 +1,98 @@
+#!/usr/bin/perl
+#=======================================================================
+#	Ensure any recent changes to PcsNotes are checked in and pushed
+#	Run by a cron job on freia023
+#=======================================================================
+use strict;
+use Getopt::Long;
+use POSIX qw(strftime);
+
+my $TOOLSDIR = "$ENV{HOME}/pcsnotes";
+my $NOTES = 'PcsNotes';
+
+my($no_action);
+
+sub main {
+    GetOptions('n|no-action' => \$no_action)
+	and @ARGV == 0
+	or die "Usage: $0 [-n]\n";
+    chdir $TOOLSDIR || die "Cannot cd $TOOLSDIR: $!\n";
+
+    # Suppress sshd banner "ssh keys are required ..."
+    $::ENV{GIT_SSH_COMMAND} = 'ssh -q';
+
+    chomp(my $branch = `git rev-parse --abbrev-ref HEAD`);
+    dbg("branch=$branch");
+
+    my($notes_mod,$index_dirty);
+    open(my $git, '-|', 'git', 'status', '--porcelain')
+	or die "Cannot open pipe from git status: $!\n";
+    while (<$git>) {
+	dbg($_);
+	if (my($index,$work,$file) = /^(.)(.) (.*)/) {
+	    if ($file eq $NOTES) {
+		if ("$index$work" =~ /M/) {
+		    $notes_mod = 1;
+		}
+	    } else {
+		if ($index =~ /[A-Z]/) {
+		    $index_dirty = 1;
+		}
+	    }
+	}
+    }
+    close($git)
+	or die "Error closing pipe from git status: $!\n";
+
+    if ($notes_mod) {
+	if ($index_dirty) {
+	    die "$NOTES has updates, but git index is not clean\n";
+	} elsif ($branch ne 'master') {
+	    die "$NOTES has updates, but not on master branch: $branch\n";
+	}
+    }
+    if ($notes_mod && ! $index_dirty) {
+	check_command(['git', 'add', $NOTES]);
+
+	my $mtime = (stat "$TOOLSDIR/$NOTES")[9];
+	my $filedate = strftime "%Y%m%dT%H%M%S", localtime $mtime;
+	my $isodate = strftime "%Y-%m-%d", localtime;
+	check_command(['git', 'commit',
+		       '--date', $mtime,
+		       "-m$NOTES: Update to $isodate"]);
+
+	check_command(['git', 'push', '--quiet']);
+    }
+}
+
+sub check_command {
+    my($cmd) = @_;
+    if ($no_action) {
+	print join(' ', map {&shellquote($_)} @$cmd),"\n";
+	return;
+    }
+    open(my $pipe, '-|', @$cmd)
+	or die "Error opening pipe from @$cmd: $1\n";
+    my $out;
+    while (<$pipe>) {
+	$out .= $_;
+	dbg($_);
+    }
+    close($pipe)
+	or die "Error closing pipe from @$cmd: $1\n";
+}
+
+sub shellquote {
+    my($term) = @_;
+    return $term
+	if $term =~ m#^[-\w,\.\+:@%/]+$#s;
+    $term =~ s#'#'"'"'#gs;
+    return "'$term'";
+}
+
+sub dbg {
+    chomp(my $line = join('', @_));
+    ## print STDERR "$line\n";
+}
+
+main;
