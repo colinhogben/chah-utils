@@ -1,0 +1,56 @@
+#!/usr/bin/env perl
+#=======================================================================
+#	Filter error stream from a command
+#=======================================================================
+use strict;
+use IPC::Open3;
+use Symbol 'gensym';
+use Getopt::Long;
+
+sub main {
+    (my $myname = $0) =~ s!.*/!!;
+    my $usage = "Usage: $myname [-v] [-i] [-e] pattern -- cmd...\n";
+    my($invert,$pattern,$ignore_case);
+    GetOptions('v|invert-match' => \$invert,
+	       'i|ignore-case' => \$ignore_case,
+	       'e|regexp=s' => \$pattern)
+	and @ARGV >= 1
+	or die $usage;
+    if (! defined $pattern) {
+	die $usage if $ARGV[0] eq '--';
+	$pattern = shift @ARGV;
+    }
+    shift @ARGV if @ARGV eq '--';
+    my @cmd = @ARGV
+	or die $usage;
+
+    my $filter = sub {
+	my($line) = @_;
+	my $match;
+	if ($ignore_case) {
+	    $match = $line =~ m/$pattern/io;
+	} else {
+	    $match = $line =~ m/$pattern/o;
+	}
+	if ($invert) {
+	    return if $match;
+	} else {
+	    return unless $match
+	}
+	return $line;
+    };
+
+    # Run the program with error filter
+    my $err = gensym;
+    my $pid = open3('<&STDIN', '>&STDOUT', $err, @cmd)
+	or die "%myname: Cannot create subprocess: $!\n";
+    while (my $line = <$err>) {
+	$line = $filter->($line);
+	print STDERR $line;
+    }
+    # Wait for child to terminate and propagate its exit code
+    waitpid $pid, 0;
+    exit $? >> 8;
+}
+
+main;

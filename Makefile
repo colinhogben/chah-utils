@@ -8,6 +8,7 @@ GENHOST = $(call letters,$(shell uname -n))
 UTILS_ALL = \
 	cconv \
 	defs undefs:defs \
+	efilter \
 	exp \
 	git-cane \
 	git-ff \
