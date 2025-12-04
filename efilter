@@ -6,10 +6,11 @@ use strict;
 use IPC::Open3;
 use Symbol 'gensym';
 use Getopt::Long;
+Getopt::Long::Configure qw(require_order);
 
 sub main {
     (my $myname = $0) =~ s!.*/!!;
-    my $usage = "Usage: $myname [-v] [-i] [-e] pattern -- cmd...\n";
+    my $usage = "Usage: $myname [-v] [-i] [-e] pattern [--] cmd...\n";
     my($invert,$pattern,$ignore_case);
     GetOptions('v|invert-match' => \$invert,
 	       'i|ignore-case' => \$ignore_case,
@@ -19,8 +20,8 @@ sub main {
     if (! defined $pattern) {
 	die $usage if $ARGV[0] eq '--';
 	$pattern = shift @ARGV;
+	shift @ARGV if @ARGV[0] eq '--';
     }
-    shift @ARGV if @ARGV eq '--';
     my @cmd = @ARGV
 	or die $usage;
 
