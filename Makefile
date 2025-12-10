@@ -9,6 +9,7 @@ UTILS_ALL = \
 	cconv \
 	defs undefs:defs \
 	efilter \
+	etee \
 	exp \
 	git-cane \
 	git-ff \
