@@ -64,13 +64,15 @@ sub main {
 	    my $note_mtime = (stat "$TOOLSDIR/$note")[9];
 	    $mtime = $note_mtime if $note_mtime > $mtime;
 	}
-	my $filedate = strftime "%Y%m%dT%H%M%S", localtime $mtime;
-	my $isodate = strftime "%Y-%m-%d", localtime;
+	my $isodate = strftime "%Y-%m-%d", localtime $mtime;
 	check_command(['git', 'commit',
 		       '--date', $mtime,
 		       "-m$mods: Update to $isodate"]);
 
-	check_command(['git', 'push', '--quiet']);
+	my($bindir) = ($0 =~ m!(.*/)!);
+	my @filter = ("${bindir}efilter",'-v','^ssh keys are required');
+	check_command([@filter,
+		       'git', 'push', '--quiet']);
     }
 }
 
@@ -81,14 +83,14 @@ sub check_command {
 	return;
     }
     open(my $pipe, '-|', @$cmd)
-	or die "Error opening pipe from @$cmd: $1\n";
+	or die "Error opening pipe from @$cmd: $!\n";
     my $out;
     while (<$pipe>) {
 	$out .= $_;
 	dbg($_);
     }
     close($pipe)
-	or die "Error closing pipe from @$cmd: $1\n";
+	or die "Error closing pipe from @$cmd: $!\n";
 }
 
 sub shellquote {
