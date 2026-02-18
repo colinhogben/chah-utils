@@ -9,6 +9,7 @@ UTILS_ALL = \
 	cconv \
 	defs undefs:defs \
 	efilter \
+	errno \
 	etee \
 	exp \
 	git-cane \
@@ -41,11 +42,14 @@ UTILS_freia = \
 	mountpcs:mountjac \
 	push-pcs-notes \
 
-install:	cconv
+install:	cconv errno
 	./install-files $(UTILS_ALL) $(UTILS_$(OS)) $(UTILS_$(GENHOST))
 
 install-%:	cconv
 	./install-files $(UTILS_ALL) $(UTILS_$*)
 
 cconv:	cconv.c
+	$(CC) -g -Wall -o $@ $<
+
+errno:	errno.c
 	$(CC) -g -Wall -o $@ $<
