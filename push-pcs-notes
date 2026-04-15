@@ -10,7 +10,18 @@ use POSIX qw(strftime);
 my $TOOLSDIR = "$ENV{HOME}/pcsnotes";
 my @NOTES = qw(PcsNotes
 	       RtCpu HostCpu Realtime
-	       Memory Symbols);
+	       Memory Symbols
+	       Internals.md
+	       UdaNotes
+	       Schema.txt
+	       Wa10Schema
+	       DeviceModel.md
+	       RtdnTodo
+	       RTVC
+	       AdvGas
+	       ToDo
+	       IpcTiming
+    );
 
 my($no_action);
 
@@ -53,7 +64,7 @@ sub main {
 	if (@index_dirty) {
 	    die "Updates to $mods, but git index is not clean\n";
 	} elsif ($branch ne 'master') {
-	    die "Updates tp $mods, but not on master branch: $branch\n";
+	    die "Updates to $mods, but not on master branch: $branch\n";
 	}
     }
     if (@notes_mod && ! @index_dirty) {
