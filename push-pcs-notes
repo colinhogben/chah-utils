@@ -21,6 +21,7 @@ my @NOTES = qw(PcsNotes
 	       AdvGas
 	       ToDo
 	       IpcTiming
+	       DsmPcs
     );
 
 my($no_action);
