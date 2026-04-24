@@ -22,6 +22,7 @@ my @NOTES = qw(PcsNotes
 	       ToDo
 	       IpcTiming
 	       DsmPcs
+	       RtProfiling.md
     );
 
 my($no_action);
